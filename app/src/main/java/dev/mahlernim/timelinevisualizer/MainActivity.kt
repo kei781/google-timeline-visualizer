@@ -150,6 +150,7 @@ import dev.mahlernim.timelinevisualizer.render.LocalFraming
 import dev.mahlernim.timelinevisualizer.render.TripDetection
 import dev.mahlernim.timelinevisualizer.render.VideoAspectRatio
 import dev.mahlernim.timelinevisualizer.render.VideoFormat
+import dev.mahlernim.timelinevisualizer.render.VectorBasemapRenderer
 import dev.mahlernim.timelinevisualizer.render.VideoQuality
 import dev.mahlernim.timelinevisualizer.render.VideoResolution
 import dev.mahlernim.timelinevisualizer.ui.CameraSettingsPreferences
@@ -3773,7 +3774,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun configureTimelineDisplay() {
         val vectorPrefs = getSharedPreferences("basemap", MODE_PRIVATE)
-        vectorMapExport = vectorPrefs.getBoolean("vector", !BuildConfig.DEBUG || BuildConfig.CARTO_BASEMAP_API_KEY.isNotBlank())
+        vectorMapExport = vectorPrefs.getBoolean("vector", true)
         editor.timelineView.useVectorBasemap = vectorMapExport
         settingsScreen.vectorMapExportSwitch.isChecked = vectorMapExport
         settingsScreen.vectorMapExportSwitch.setOnCheckedChangeListener { _, checked ->
@@ -6207,7 +6208,9 @@ class MainActivity : AppCompatActivity() {
             fallbackTitle = getString(R.string.default_title),
             datePattern = getString(R.string.render_date_pattern),
             distanceUnit = distanceUnit.symbol,
-            attribution = getString(R.string.map_attribution),
+            attribution = getString(
+                if (VectorBasemapRenderer.USES_OPEN_FREE_MAP) R.string.map_attribution_openfreemap else R.string.map_attribution,
+            ),
             distanceScale = distanceUnit.kilometersMultiplier,
             hideDates = hideDates,
         )

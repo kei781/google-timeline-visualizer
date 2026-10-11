@@ -36,7 +36,7 @@ class VectorBasemapRenderer private constructor(context: Context, private val wi
     private var closed = false
     private val snapshotter = MapSnapshotter(context, MapSnapshotter.Options(mapWidth, mapHeight)
         .withPixelRatio(1f).withLogo(false).withAttribution(false)
-        .withStyleBuilder(Style.Builder().fromUri("https://basemaps.cartocdn.com/gl/positron-gl-style/style.json")))
+        .withStyleBuilder(Style.Builder().fromUri(STYLE_URL)))
     private var coverage: Viewport? = null
     private var requestedCoverage: Viewport? = null
     private var background: Bitmap? = null
@@ -109,6 +109,8 @@ class VectorBasemapRenderer private constructor(context: Context, private val wi
     }
 
     fun drawLogo(canvas: Canvas) {
+        // The CARTO logo only applies to CARTO tiles; OpenFreeMap is credited in the attribution text.
+        if (USES_OPEN_FREE_MAP) return
         val w = (minOf(width,height)*.15).toInt().coerceAtLeast(66)
         val h = w*64/164
         canvas.drawRect(4f,(height-h-8).toFloat(),(w+12).toFloat(),(height-4).toFloat(),Paint().apply { color=0xE6FFFFFF.toInt() })
@@ -132,9 +134,15 @@ class VectorBasemapRenderer private constructor(context: Context, private val wi
         .zoom(log2(pixelWidth/(512*(view.maxX-view.minX)))).build()
 
     companion object {
+        /** Builds without a CARTO key use OpenFreeMap, which serves the Positron style without a key. */
+        val USES_OPEN_FREE_MAP = BuildConfig.CARTO_BASEMAP_API_KEY.isBlank()
+        private val STYLE_URL = if (USES_OPEN_FREE_MAP) {
+            "https://tiles.openfreemap.org/styles/positron"
+        } else {
+            "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+        }
         private var initialized = false
         suspend fun create(context: Context, width: Int, height: Int): VectorBasemapRenderer = withContext(Dispatchers.Main) {
-            if (BuildConfig.CARTO_BASEMAP_API_KEY.isBlank()) throw VectorMapException()
             require(width > 0 && height > 0)
             val app = context.applicationContext
             val activityManager = app.getSystemService(android.app.ActivityManager::class.java)
