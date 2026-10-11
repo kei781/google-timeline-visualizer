@@ -1455,6 +1455,21 @@ class MainActivityTest {
     }
 
     @Test
+    @Config(sdk = [35], qualifiers = "en-rUS")
+    fun dailyRecapTitleNamesTheSingleDay() {
+        val activity = launchActivity()
+
+        assertEquals(
+            "Mar 14, 2026 recap",
+            activity.suggestedProjectTitle(
+                TripKind.DAILY_RECAP,
+                LocalDate.parse("2026-03-14"),
+                LocalDate.parse("2026-03-14"),
+            ),
+        )
+    }
+
+    @Test
     @Config(sdk = [35], qualifiers = "ko-rKR")
     fun recapTitlesUseKoreanResources() {
         val activity = launchActivity()

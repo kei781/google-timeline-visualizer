@@ -2,7 +2,7 @@ package dev.mahlernim.timelinevisualizer.trips
 
 import java.time.LocalDate
 
-enum class TripKind { TRIP, MONTHLY_RECAP, YEARLY_RECAP, CUSTOM_RECAP, RAW_DATA }
+enum class TripKind { TRIP, MONTHLY_RECAP, YEARLY_RECAP, CUSTOM_RECAP, RAW_DATA, DAILY_RECAP }
 
 enum class ProjectTitleMode { AUTOMATIC, CUSTOM }
 

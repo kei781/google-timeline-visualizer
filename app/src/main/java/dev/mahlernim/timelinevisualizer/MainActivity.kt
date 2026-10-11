@@ -1560,7 +1560,7 @@ class MainActivity : AppCompatActivity() {
     private fun applyRecommendedPresetIfNeeded() {
         val current = selectedPreset()
         if (current != null) return
-        val recommendedId = if (activeProjectKind == TripKind.TRIP) {
+        val recommendedId = if (activeProjectKind == TripKind.TRIP || activeProjectKind == TripKind.DAILY_RECAP) {
             PresetRepository.TRIP_CLOSE_UP_ID
         } else {
             PresetRepository.RECAP_PORTRAIT_ID
@@ -3112,6 +3112,19 @@ class MainActivity : AppCompatActivity() {
         val initialStart = start.coerceIn(bounds.first, bounds.second)
         val initialEnd = end.coerceIn(initialStart, bounds.second)
         val constraints = datePickerConstraints(bounds, initialStart)
+        if (activeProjectKind == TripKind.DAILY_RECAP) {
+            val dayPicker = MaterialDatePicker.Builder.datePicker()
+                .setTitleText(R.string.choose_day)
+                .setCalendarConstraints(constraints)
+                .setSelection(datePickerMillis(initialStart))
+                .build()
+            dayPicker.addOnPositiveButtonClickListener { millis ->
+                val picked = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
+                applyExactDateRange(picked, picked)
+            }
+            dayPicker.show(supportFragmentManager, "exact-day")
+            return
+        }
         val picker = MaterialDatePicker.Builder.dateRangePicker()
             .setTitleText(R.string.choose_exact_dates)
             .setCalendarConstraints(constraints)
@@ -3137,7 +3150,9 @@ class MainActivity : AppCompatActivity() {
         editor.exactDateRangeButton.visibility = if (exactDateRangeEnabled) View.VISIBLE else View.GONE
         val start = selectedStartDate
         val end = selectedEndDate
-        editor.exactDateRangeButton.text = if (start != null && end != null) {
+        editor.exactDateRangeButton.text = if (start != null && activeProjectKind == TripKind.DAILY_RECAP) {
+            formatExactDate(start)
+        } else if (start != null && end != null) {
             getString(R.string.exact_date_range, formatExactDate(start), formatExactDate(end))
         } else {
             getString(R.string.choose_exact_dates)
@@ -4894,14 +4909,15 @@ class MainActivity : AppCompatActivity() {
         endPeriodEnabled = false
         activeStartDate = when (kind) {
             TripKind.TRIP -> latest.minusDays(6).coerceAtLeast(bounds.first)
+            TripKind.DAILY_RECAP -> latest
             TripKind.MONTHLY_RECAP -> latest.withDayOfMonth(1)
             TripKind.YEARLY_RECAP -> LocalDate.of(latest.year, 1, 1)
             TripKind.CUSTOM_RECAP -> RecapPeriodRules.customDefault(bounds.first, bounds.second, LocalDate.now(zone)).first
             TripKind.RAW_DATA -> bounds.first
         }
         activeEndDate = when (kind) {
-            TripKind.TRIP -> latest
-            TripKind.MONTHLY_RECAP -> latest.withDayOfMonth(1).plusMonths(1).minusDays(1)
+            TripKind.TRIP, TripKind.DAILY_RECAP -> latest
+            TripKind.MONTHLY_RECAP ->latest.withDayOfMonth(1).plusMonths(1).minusDays(1)
             TripKind.YEARLY_RECAP -> LocalDate.of(latest.year, 12, 31)
             TripKind.CUSTOM_RECAP, TripKind.RAW_DATA -> bounds.second
         }
@@ -4919,8 +4935,20 @@ class MainActivity : AppCompatActivity() {
     private fun chooseRecapKind() {
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.create_recap)
-            .setItems(arrayOf(getString(R.string.monthly_recap_badge), getString(R.string.yearly_recap_badge))) { _, which ->
-                startManualProject(if (which == 0) TripKind.MONTHLY_RECAP else TripKind.YEARLY_RECAP)
+            .setItems(
+                arrayOf(
+                    getString(R.string.daily_recap_badge),
+                    getString(R.string.monthly_recap_badge),
+                    getString(R.string.yearly_recap_badge),
+                ),
+            ) { _, which ->
+                startManualProject(
+                    when (which) {
+                        0 -> TripKind.DAILY_RECAP
+                        1 -> TripKind.MONTHLY_RECAP
+                        else -> TripKind.YEARLY_RECAP
+                    },
+                )
             }
             .show()
     }
@@ -4987,6 +5015,7 @@ class MainActivity : AppCompatActivity() {
             TripKind.TRIP -> R.string.trip_badge
             TripKind.MONTHLY_RECAP -> R.string.monthly_recap_badge
             TripKind.YEARLY_RECAP -> R.string.yearly_recap_badge
+            TripKind.DAILY_RECAP -> R.string.daily_recap_badge
             TripKind.CUSTOM_RECAP -> R.string.custom_recap_badge
             TripKind.RAW_DATA -> R.string.raw_data_badge
         })
@@ -5214,7 +5243,8 @@ class MainActivity : AppCompatActivity() {
         rawSignalsEnabled = !BuildConfig.IS_JOURNAL_LAB && activeProjectKind == TripKind.RAW_DATA
         if (!rawSignalsEnabled) rawProjectRangeConflict = false
         if (rawSignalsEnabled) rebuildRawSignalsTimeline()
-        exactDateRangeEnabled = activeProjectKind in setOf(TripKind.TRIP, TripKind.CUSTOM_RECAP, TripKind.RAW_DATA)
+        exactDateRangeEnabled = activeProjectKind in
+            setOf(TripKind.TRIP, TripKind.CUSTOM_RECAP, TripKind.RAW_DATA, TripKind.DAILY_RECAP)
         selectedStartDate = start
         selectedEndDate = end
         selectedStartYear = start.year
@@ -5328,6 +5358,7 @@ class MainActivity : AppCompatActivity() {
                 end.year,
             )
         }
+        TripKind.DAILY_RECAP -> getString(R.string.day_recap_title, formatExactDate(start))
         TripKind.CUSTOM_RECAP -> getString(
             R.string.custom_recap_title,
             formatExactDate(start),
@@ -5499,6 +5530,7 @@ class MainActivity : AppCompatActivity() {
         projectDisplayRange(project.kind, project.startDate, project.endDate)
 
     private fun projectDisplayRange(kind: TripKind, start: LocalDate, end: LocalDate): String = when {
+        kind == TripKind.DAILY_RECAP -> formatExactDate(start)
         kind == TripKind.TRIP -> projectDateRange(start, end)
         kind == TripKind.CUSTOM_RECAP || kind == TripKind.RAW_DATA -> projectDateRange(start, end)
         kind == TripKind.YEARLY_RECAP && start.year != end.year -> "${start.year}–${end.year}"

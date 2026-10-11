@@ -96,6 +96,7 @@ class TripsStore(context: Context) {
         TripKind.YEARLY_RECAP -> "${start.year} recap"
         TripKind.CUSTOM_RECAP -> "Recap"
         TripKind.RAW_DATA -> "Raw data"
+        TripKind.DAILY_RECAP -> "$start recap"
     }
 
     companion object {

@@ -416,6 +416,9 @@
     <string name="trip_badge">Trip</string>
     <string name="monthly_recap_badge">Monthly recap</string>
     <string name="yearly_recap_badge">Yearly recap</string>
+    <string name="daily_recap_badge">Daily recap</string>
+    <string name="day_recap_title">%1$s recap</string>
+    <string name="choose_day">Choose a day</string>
     <string name="confirm_and_create">Confirm and create</string>
     <string name="create_video_for_trip">Create video</string>
     <string name="dismiss_suggestion">Dismiss</string>
